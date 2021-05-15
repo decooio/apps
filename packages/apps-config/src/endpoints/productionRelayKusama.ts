@@ -28,7 +28,7 @@ export function createKusama (t: TFunction): EndpointOption {
       // parachains with id, see Rococo
       // alphabetical based on chain name
       {
-        info: 'crust shadow',
+        info: 'crust',
         paraId: 2012,
         text: t('rpc.kusama.shadow', 'Crust Shadow', { ns: 'apps-config' }),
         providers: {
