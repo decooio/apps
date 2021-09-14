@@ -839,6 +839,7 @@
   "Update metadata": "升级Metadata",
   "Updated in the latest block": "在最新的块中更新",
   "Upload": "上传",
+  "Upload File": "上传至Web3 IPFS网关",
   "Upload WASM": "上传 WASM",
   "Use a proxy for this call": "对这个调用使用代理",
   "Use an automatic selection of the currently most profitable validators": "自动选择当前收益最高的验证者",

@@ -11,3 +11,9 @@ export interface SaveFile extends UploadRes {
   UpEndpoint: string,
   PinEndpoint: string,
 }
+
+export interface NormalizedFile {
+  path: string,
+  content: string,
+  size: number
+}

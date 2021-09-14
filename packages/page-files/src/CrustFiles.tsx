@@ -3,15 +3,17 @@
 
 import FileSaver from 'file-saver';
 import React, { useCallback, useContext, useRef, useState } from 'react';
+import { Dropdown as SUIDropdown } from 'semantic-ui-react';
 import styled from 'styled-components';
-
 import { useFiles } from '@polkadot/app-files/hooks';
 import UploadModal from '@polkadot/app-files/UploadModal';
+import UploadFolderModal from '@polkadot/app-files/UploadFolderModal';
 import { Badge, Button, CopyButton, StatusContext, Table } from '@polkadot/react-components';
 import { ActionStatusBase, QueueProps } from '@polkadot/react-components/Status/types';
 
 import { useTranslation } from './translate';
-import { SaveFile } from './types';
+import { SaveFile, NormalizedFile } from './types';
+import { normalizeFiles } from './files';
 
 const MCopyButton = styled(CopyButton)`
   .copySpan {
@@ -33,6 +35,18 @@ const ItemFile = styled.tr`
   }
 `;
 
+const UploadDropDown = styled(SUIDropdown)`
+  background: none;
+
+  .icon {
+    display: none
+  }
+
+  .menu {
+    width: 100%
+  }
+`;
+
 function createUrl (f: SaveFile) {
   const endpoint = f.UpEndpoint || 'https://ipfs.io';
 
@@ -48,13 +62,22 @@ type FunInputFile = (e: React.ChangeEvent<HTMLInputElement>) => void
 function CrustFiles (): React.ReactElement {
   const { t } = useTranslation();
   const [showUpMode, setShowUpMode] = useState(false);
+  const [showFolderUpMode, setShowFolderUpMode] = useState(false);
   const wFiles = useFiles();
+
+  const uploadCategory = [
+    { key: 'file', text: t('File'), value: 'file', onClick: () => _clickUploadFile() },
+    { key: 'folder', text: t('Folder'), value: 'folder', onClick: () => _clickUploadFolder() }
+  ];
+
   const [file, setFile] = useState<File | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
+
   const _clickUploadFile = useCallback(() => {
     if (!inputRef.current) return;
     inputRef.current.click();
   }, [inputRef]);
+
   const _onInputFile = useCallback<FunInputFile>((e) => {
     const files = e.target.files;
 
@@ -66,6 +89,29 @@ function CrustFiles (): React.ReactElement {
       setShowUpMode(true);
     }
   }, [setFile, setShowUpMode]);
+
+  const [folderFiles, setFolderFiles] = useState<NormalizedFile[] | undefined>(undefined);
+  const inputFolderRef = useRef<HTMLInputElement>(null);
+  const _clickUploadFolder = useCallback(() => {
+    if (!inputFolderRef.current) return;
+    inputFolderRef.current.click();
+  }, [inputFolderRef]);
+  const _onInputFolder = useCallback<FunInputFile>((e) => {
+    const files = e.target.files;
+    console.log('Upload folder', files);
+
+    if (files && files.length > 0) {
+      // for (const file of files) {
+      //   console.log('Folder file', file);
+      // }
+
+      e.target.value = '';
+      setFolderFiles(normalizeFiles(files));
+      setShowFolderUpMode(true);
+    }
+  }, [setFolderFiles, setShowFolderUpMode]);
+
+
   const { queueAction } = useContext<QueueProps>(StatusContext);
   const _onImportResult = useCallback<(m: string, s?: ActionStatusBase['status']) => void>(
     (message, status = 'queued') => {
@@ -77,6 +123,7 @@ function CrustFiles (): React.ReactElement {
     },
   [queueAction, t]
   );
+
   const importInputRef = useRef<HTMLInputElement>(null);
   const _clickImport = useCallback(() => {
     if (!importInputRef.current) return;
@@ -124,10 +171,12 @@ function CrustFiles (): React.ReactElement {
 
   const _onClose = useCallback(() => {
     setShowUpMode(false);
+    setShowFolderUpMode(false);
   }, []);
 
   const _onSuccess = useCallback((res: SaveFile) => {
     setShowUpMode(false);
+    setShowFolderUpMode(false);
     const filterFiles = wFiles.files.filter((f) => f.Hash !== res.Hash);
 
     wFiles.setFiles([res, ...filterFiles]);
@@ -149,6 +198,13 @@ function CrustFiles (): React.ReactElement {
       type={'file'}
     />
     <input
+      onChange={_onInputFolder}
+      ref={inputFolderRef}
+      style={{ display: 'none' }}
+      type={'file'}
+      webkitdirectory={'true'}
+    />
+    <input
       onChange={_onInputImportFile}
       ref={importInputRef}
       style={{ display: 'none' }}
@@ -162,12 +218,28 @@ function CrustFiles (): React.ReactElement {
         onSuccess={_onSuccess}
       />
     }
-    <div style={{ display: 'flex', paddingBottom: '1.5rem' }}>
-      <Button
-        icon={'upload'}
-        label={t('Upload File')}
-        onClick={_clickUploadFile}
+    {
+      folderFiles && showFolderUpMode &&
+      <UploadFolderModal
+        folderFiles={folderFiles}
+        onClose={_onClose}
+        onSuccess={_onSuccess}
       />
+    }
+    <div style={{ display: 'flex', paddingBottom: '1.5rem' }}>
+      <div style={{ display: 'flex' }}>
+        <UploadDropDown
+          floating
+          options={uploadCategory}
+          trigger={
+            <Button
+              isReadOnly={false}
+              icon={'upload'}
+              label={t('Upload')}
+            />
+          }
+        />
+      </div>
       <div style={{ flex: 1 }} />
       <Button
         icon={'file-import'}
